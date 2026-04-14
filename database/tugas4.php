@@ -1,46 +1,55 @@
 <?php
-// lihat folder database
-// operasi update
-// bisa menggunakan CLI saja
+// PROGRAM UPDATE DATA USER VIA CLI (PDO)
 
-$host = 'localhost';
-$db   = 'mahasiswa';
-$user = 'root';
-$pass = '12345';
+// SETTING DATABASE
+$dbHost = "localhost";
+$dbName = "mahasiswa";
+$dbUser = "root";
+$dbPass = "12345";
 
-// ==========================
-// KONFIGURASI DATABASE
-// ==========================
-$dsn  = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+// BUAT KONEKSI PDO
+try {
+    $koneksi = new PDO(
+        "mysql:host=$dbHost;dbname=$dbName;charset=utf8mb4",
+        $dbUser,
+        $dbPass
+    );
+
+    // setting error mode
+    $koneksi->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+} catch (PDOException $err) {
+    exit("Tidak bisa konek ke database: " . $err->getMessage() . PHP_EOL);
+}
+
+// INPUT DARI TERMINAL
+echo "=== UPDATE DATA USER ===\n";
+$userId   = readline("Input ID user: ");
+$namaBaru = readline("Input username baru: ");
+
+// VALIDASI SEDERHANA
+if (empty($userId) || empty($namaBaru)) {
+    exit("ID dan username tidak boleh kosong!\n");
+}
+
+// QUERY UPDATE
+$query = "UPDATE user SET username = :nama WHERE id = :uid";
 
 try {
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
+    $prepare = $koneksi->prepare($query);
+    $prepare->bindParam(':nama', $namaBaru);
+    $prepare->bindParam(':uid', $userId);
+
+    $prepare->execute();
+
+    // CEK APAKAH ADA DATA YANG BERUBAH
+    if ($prepare->rowCount() > 0) {
+        echo "Update berhasil ✔\n";
+    } else {
+        echo "Tidak ada data yang berubah (ID mungkin tidak ditemukan)\n";
+    }
+
 } catch (PDOException $e) {
-    die("Koneksi DB gagal: " . $e->getMessage());
+    echo "Terjadi kesalahan saat update: " . $e->getMessage() . "\n";
 }
-
-// input dari CLI
-$id = readline("Masukkan ID: ");
-$username = readline("Masukkan nama baru: ");
-
-// update query
-$sql = "UPDATE user SET username = :username WHERE id = :id";
-$stmt = $pdo->prepare($sql);
-
-$result = $stmt->execute([
-    'username' => $username,
-    'id' => $id
-]);
-
-if ($result) {
-    echo "Data berhasil diupdate\n";
-} else {
-    echo "Gagal update\n";
-}
-
-
-
 ?>
